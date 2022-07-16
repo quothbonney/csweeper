@@ -2,10 +2,10 @@ import sys,os
 import curses
 import board_create
 import numpy as np
-
+import numpy.typing as npt
 
 game_x, game_y = 18, 34
-game = board_create.Board(game_x, game_y, (2, 2))
+game = board_create.Board(game_x, game_y)
 
 
 colordict = {
@@ -52,9 +52,19 @@ def draw_menu(stdscr):
     locations = []
     flags = []
 
-    state = board_create.State(game, locations=locations, flags=flags)
-    board = state.get_print_board()
-    cache = board
+    starting_board = np.full([game_x, game_y], "~")
+
+    open_board: npt.ArrayLike = game.character_board()
+    cache: npt.ArrayLike = starting_board
+
+    def open_zeros(x: int, y: int):
+        for i in range(-1, 2, 1):
+            for j in range(-1, 2, 1):
+                if (x + i) in range(0, game_x) and (y + j) in range(0, game_y): 
+                    try: 
+                        cache[x + i][y + j] = open_board[x + i][y + j]
+                        # if board[x+i][y+j] == '0': open_zeros(x+i, y+j)
+                    except Exception: pass
 
     while (k != ord('q')):
 
@@ -71,17 +81,15 @@ def draw_menu(stdscr):
         elif k == ord('a'):
             cursor_x = ((cursor_x - 2) % (game_y * 2))
         elif k == ord(' '):
-            locations.append((cursor_y, int(cursor_x/2)))
+            x = int(cursor_x/2)
+            cache[cursor_y][x] = open_board[cursor_y][x]
 
-            # Update board state
-            state = board_create.State(game, locations=locations, flags=flags)
-            cache = state.get_print_board()
         elif k == ord('f'):
-            cursor_tup = (cursor_y, int(cursor_x/2))
-            if cursor_tup in flags:
-                flags.remove(cursor_tup)
+            x = int(cursor_x/2)
+            if cache[cursor_y][x] != 'f':
+                cache[cursor_y][x] = open_board[cursor_y][cursor_x]
             else:
-                flags.append((cursor_y, int(cursor_x/2)))
+                cache[cursor_y][x] = 'f'
 
             
             # Update board state with flag
@@ -119,14 +127,6 @@ def draw_menu(stdscr):
 
         # Get array from board_state
 
-        def open_zeros(x: int, y: int):
-            for i in range(-1, 2, 1):
-                for j in range(-1, 2, 1):
-                    if (x + i) in range(0, game_x) and (y + j) in range(0, game_y): 
-                        try: 
-                            locations.append((x + i, y + j))
-                            # if board[x+i][y+j] == '0': open_zeros(x+i, y+j)
-                        except Exception: pass
 
         for i, row in enumerate(cache):
             for j, elem in enumerate(row):
