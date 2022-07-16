@@ -1,11 +1,14 @@
+#!/usr/bin/python3
+
 import sys,os
 import curses
 import board_create
 import numpy as np
 import numpy.typing as npt
+import sys
 
 # Game globals
-game_x, game_y = 18, 34
+game_x, game_y = int(sys.argv[1]), int(sys.argv[2]) 
 game = board_create.Board(game_x, game_y)
 
 # Color pair dictionary
