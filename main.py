@@ -14,7 +14,7 @@ colordict = {
         '1': 5,
         '2': 6,
         '3': 7,
-        '4': 8,
+        '4': 1,
         '5': 9,
         '6': 9,
         '7': 9,
@@ -52,6 +52,10 @@ def draw_menu(stdscr):
     locations = []
     flags = []
 
+    state = board_create.State(game, locations=locations, flags=flags)
+    board = state.get_print_board()
+    cache = board
+
     while (k != ord('q')):
 
         
@@ -68,14 +72,25 @@ def draw_menu(stdscr):
             cursor_x = ((cursor_x - 2) % (game_y * 2))
         elif k == ord(' '):
             locations.append((cursor_y, int(cursor_x/2)))
+
+            # Update board state
+            state = board_create.State(game, locations=locations, flags=flags)
+            cache = state.get_print_board()
         elif k == ord('f'):
-            flags.append((cursor_y, int(cursor_x/2)))
+            cursor_tup = (cursor_y, int(cursor_x/2))
+            if cursor_tup in flags:
+                flags.remove(cursor_tup)
+            else:
+                flags.append((cursor_y, int(cursor_x/2)))
+
+            
+            # Update board state with flag
+            state = board_create.State(game, locations=locations, flags=flags)
+            cache = state.get_print_board()
 
         # Initialization
         height, width = stdscr.getmaxyx()
 
-        state = board_create.State(game_x, game_y, game.values, locations=locations, flags=flags)
-        board = state.get_print_board()
 
         x_offset = int((width - game_y*2) / 2)
         y_offset = int((height - game_x) / 2)
@@ -90,11 +105,8 @@ def draw_menu(stdscr):
         cursor_y = min(height-1, cursor_y)
         
 
-        statusbarstr = "Press 'q' to exit | STATUS BAR | Pos: {}, {}".format(cursor_x, cursor_y)
+        statusbarstr = f"Press 'q' to exit | STATUS BAR | Flags: {len(flags)}"
 
-        # Centering calculations
-
-        # Rendering some text
 
         # Render status bar
         stdscr.attron(curses.color_pair(3))
@@ -116,7 +128,7 @@ def draw_menu(stdscr):
                             # if board[x+i][y+j] == '0': open_zeros(x+i, y+j)
                         except Exception: pass
 
-        for i, row in enumerate(board):
+        for i, row in enumerate(cache):
             for j, elem in enumerate(row):
                 # Get color channel through dictionary
                 pair: int = colordict[str(elem)]
