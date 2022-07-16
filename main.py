@@ -4,10 +4,11 @@ import board_create
 import numpy as np
 import numpy.typing as npt
 
+# Game globals
 game_x, game_y = 18, 34
 game = board_create.Board(game_x, game_y)
 
-
+# Color pair dictionary
 colordict = {
         '~': 4,
         '0': 8,
@@ -26,7 +27,10 @@ colordict = {
 
 
 def draw_menu(stdscr):
+    # Keystroke variable
     k = 0
+
+    # Cursor start position
     cursor_x = 0
     cursor_y = 0
 
@@ -52,11 +56,14 @@ def draw_menu(stdscr):
     locations = []
     flags = []
 
+    # Starg game with board of curlies
     starting_board = np.full([game_x, game_y], "~")
 
+    # Get character board from game global abd send it to the cache
     open_board: npt.ArrayLike = game.character_board()
     cache: npt.ArrayLike = starting_board
 
+    # Function to open adjacent cells to expand zeros
     def open_zeros(x: int, y: int):
         for i in range(-1, 2, 1):
             for j in range(-1, 2, 1):
@@ -67,7 +74,6 @@ def draw_menu(stdscr):
                     except Exception: pass
 
     while (k != ord('q')):
-
         
         # WASD to move
         # Modulus to prevent going too far
@@ -86,20 +92,18 @@ def draw_menu(stdscr):
 
         elif k == ord('f'):
             x = int(cursor_x/2)
-            if cache[cursor_y][x] != 'f':
-                cache[cursor_y][x] = open_board[cursor_y][cursor_x]
+            flags.append((cursor_y, cursor_x))
+            if cache[cursor_y][x] == 'f':
+                cache[cursor_y][x] = '~' 
             else:
-                cache[cursor_y][x] = 'f'
+                if cache[cursor_y][x] == '~': cache[cursor_y][x] = 'f'
 
-            
-            # Update board state with flag
-            state = board_create.State(game, locations=locations, flags=flags)
-            cache = state.get_print_board()
 
         # Initialization
         height, width = stdscr.getmaxyx()
 
-
+        
+        # Board offset given window size
         x_offset = int((width - game_y*2) / 2)
         y_offset = int((height - game_x) / 2)
 
@@ -125,9 +129,7 @@ def draw_menu(stdscr):
         # Turning on attributes for title
         stdscr.attron(curses.A_BOLD)
 
-        # Get array from board_state
-
-
+        # Print array from cache
         for i, row in enumerate(cache):
             for j, elem in enumerate(row):
                 # Get color channel through dictionary
