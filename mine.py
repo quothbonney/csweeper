@@ -1,15 +1,20 @@
 #!/usr/bin/python3
+# Open source software written by Jack D.V. Carson
 
 import sys,os
 import curses
 import board_create
 import numpy as np
 import numpy.typing as npt
-import sys
+import os, sys
 
 # Game globals
-game_x, game_y = int(sys.argv[1]), int(sys.argv[2]) 
+try:
+    game_x, game_y = int(sys.argv[1]), int(sys.argv[2])
+except Exception:
+    game_x, game_y = 18, 36 
 game = board_create.Board(game_x, game_y)
+
 
 # Color pair dictionary
 colordict = {
@@ -32,7 +37,8 @@ colordict = {
 def draw_menu(stdscr):
     # Keystroke variable
     k = 0
-
+    
+    game_still_going = True
     # Cursor start position
     cursor_x = 0
     cursor_y = 0
@@ -65,6 +71,7 @@ def draw_menu(stdscr):
     # Get character board from game global abd send it to the cache
     open_board: npt.ArrayLike = game.character_board()
     cache: npt.ArrayLike = starting_board
+    mine_count = np.count_nonzero(open_board == 'b')
 
     # Function to open adjacent cells to expand zeros
     def open_zeros(x: int, y: int):
@@ -73,8 +80,8 @@ def draw_menu(stdscr):
                 if (x + i) in range(0, game_x) and (y + j) in range(0, game_y): 
                     try: 
                         cache[x + i][y + j] = open_board[x + i][y + j]
-                        # if board[x+i][y+j] == '0': open_zeros(x+i, y+j)
                     except Exception: pass
+
 
     while (k != ord('q')):
         
@@ -91,15 +98,30 @@ def draw_menu(stdscr):
             cursor_x = ((cursor_x - 2) % (game_y * 2))
         elif k == ord(' '):
             x = int(cursor_x/2)
-            cache[cursor_y][x] = open_board[cursor_y][x]
+            if game_still_going and cache[cursor_y][x] != 'f':
+                cache[cursor_y][x] = open_board[cursor_y][x]
+
+            if cache[cursor_y][x] == 'b':
+                # Render game over message
+                game_still_going = False
+
+                # Show all bombs
+                for i, row in enumerate(open_board):
+                    for j, elem in enumerate(row):
+                        if elem == 'b': cache[i][j] = 'b'
 
         elif k == ord('f'):
             x = int(cursor_x/2)
-            flags.append((cursor_y, cursor_x))
             if cache[cursor_y][x] == 'f':
                 cache[cursor_y][x] = '~' 
+                flags.remove((cursor_y, cursor_x))
             else:
+                flags.append((cursor_y, cursor_x))
                 if cache[cursor_y][x] == '~': cache[cursor_y][x] = 'f'
+                else: pass
+
+        elif k == ord('n'):
+            os.system(f"python3 ./mine.py {game_x} {game_y}")
 
 
         # Initialization
@@ -120,7 +142,7 @@ def draw_menu(stdscr):
         cursor_y = min(height-1, cursor_y)
         
 
-        statusbarstr = f"Press 'q' to exit | STATUS BAR | Flags: {len(flags)}"
+        statusbarstr = f"Press 'q' to exit | Flags: {len(flags)} | Mines: {mine_count}"
 
 
         # Render status bar
@@ -156,6 +178,7 @@ def draw_menu(stdscr):
 
         # Wait for next input
         k = stdscr.getch()
+
 
 def main():
     curses.wrapper(draw_menu)
